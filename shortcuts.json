@@ -1,0 +1,60 @@
+{
+  "categories": [
+    {
+      "id": "d072759c-05b4-4ffd-a07f-97c4d243317a",
+      "name": "Raccourcis",
+      "shortcuts": [
+        {
+          "bodyContent": "⚠️🚨🚁⚠️ Extraction requis de toute urgence ⚠️🚨🚁⚠️\n\n\nAgent en danger immédiat \n\n⚠️ Agent #626204_Thilanka ⚠️\n{{5012bd26-5238-4338-bd35-35c9a33dfe86}}",
+          "categoryId": "d072759c-05b4-4ffd-a07f-97c4d243317a",
+          "headers": [
+            {
+              "id": "3ed35c2e-d924-4942-9d58-f5f53771ec1e",
+              "key": "Title",
+              "value": "Extraction requis"
+            },
+            {
+              "id": "e9cc7022-1000-43e3-a379-eea10f795c98",
+              "key": "Priority",
+              "value": "urgent"
+            },
+            {
+              "id": "79b1b1b0-d26e-411c-b6a6-9e405daf27b1",
+              "key": "Tags",
+              "value": "urgent, alert, helicopter, emergency "
+            },
+            {
+              "id": "ec838df0-8564-49c7-91d3-5f7fd146f50a",
+              "key": "Attach",
+              "value": "https://mrlesommelier.github.io/images/img.jpg"
+            }
+          ],
+          "iconName": "flat_color_support",
+          "id": "0e7f3844-67e0-4a5d-af0f-d60c7b503a56",
+          "keepConnectionOpen": true,
+          "launcherShortcut": false,
+          "method": "POST",
+          "name": "Extraction",
+          "quickSettingsTileShortcut": true,
+          "responseHandling": {
+            "jsonArrayAsTable": false,
+            "successOutput": "none"
+          },
+          "secondaryLauncherShortcut": true,
+          "timeout": 0,
+          "url": "http://ntfy.sh/CPC_Alertes"
+        }
+      ]
+    }
+  ],
+  "compatibilityVersion": 78,
+  "variables": [
+    {
+      "data": "{\"timestamp\":{\"format\":\"dd-MM-yyyy HH:mm:ss\"}}",
+      "id": "5012bd26-5238-4338-bd35-35c9a33dfe86",
+      "key": "Date",
+      "type": "timestamp"
+    }
+  ],
+  "version": 81
+}
