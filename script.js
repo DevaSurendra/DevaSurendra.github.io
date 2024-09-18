@@ -5,9 +5,9 @@ import 'firebase/firestore';
 
 // Initialisation de Firebase
 firebase.initializeApp({
-  apiKey: AIzaSyCrvzcKqrbGVh0MQgXC5dBeYFEaRxKNAUE,
-  authDomain: trss-messaging.web.app,
-  projectId: trss-family,
+  apiKey: "AIzaSyB-Z71zLvWl5-cp31osyhobSr1wq0Xaylw",
+  authDomain: "tarasschat.firebaseapp.com",
+  projectId: "tarasschat",
 });
 
 // Récupération de la base de données Firestore
