@@ -5,29 +5,53 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Tarass'</title>
     <link rel="stylesheet" href="css/style.css">
+<script type="module">
+  // Import the functions you need from the SDKs you need
+  import { initializeApp } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-app.js";
+  import { getAnalytics } from "https://www.gstatic.com/firebasejs/10.13.1/firebase-analytics.js";
+  // TODO: Add SDKs for Firebase products that you want to use
+  // https://firebase.google.com/docs/web/setup#available-libraries
+
+  // Your web app's Firebase configuration
+  // For Firebase JS SDK v7.20.0 and later, measurementId is optional
+  const firebaseConfig = {
+    apiKey: "AIzaSyB-Z71zLvWl5-cp31osyhobSr1wq0Xaylw",
+    authDomain: "tarasschat.firebaseapp.com",
+    databaseURL: "https://tarasschat-default-rtdb.europe-west1.firebasedatabase.app",
+    projectId: "tarasschat",
+    storageBucket: "tarasschat.appspot.com",
+    messagingSenderId: "873363034594",
+    appId: "1:873363034594:web:1ecffb2d40e3f6189869bb",
+    measurementId: "G-Q6245WGFPJ"
+  };
+
+  // Initialize Firebase
+  const app = initializeApp(firebaseConfig);
+  const analytics = getAnalytics(app);
+</script>
 </head>
 <body>
     <header>
         <nav>
             <ul>
                 <li><a href="#">Accueil</a></li>
-                <li><a href="#">Messages</a></li>
+                <li><a href="#">Tarass'</a></li>
                 <li><a href="#">Profil</a></li>
             </ul>
         </nav>
     </header>
     <main>
         <section class="tweets">
-            <h2>Messages</h2>
+            <h2>Tarass'</h2>
             <ul id="tweet-list">
                 <!-- Les tweets seront affichés ici -->
             </ul>
         </section>
         <section class="new-tweet">
-            <h2>Nouveau Message</h2>
+            <h2>Nouveau Tarass'</h2>
             <form>
-                <textarea id="tweet-input" placeholder="Écrivez votre message..."></textarea>
-                <button id="tweet-btn">Envoyer</button>
+                <textarea id="tweet-input" placeholder="Écrivez votre tarass'..."></textarea>
+                <button id="tweet-btn">Tarass'(er)</button>
             </form>
         </section>
     </main>
