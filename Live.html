@@ -1,0 +1,726 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>📸 Instagram Live Wall – Plein écran</title>
+
+    <!-- ============================================================
+    CONFIGURATION – Modifie les paramètres ici
+    ============================================================ -->
+    <script>
+        // ------------------------------------------------------------
+        // 1. HASHTAGS à afficher (un ou plusieurs, sans le #)
+        // ------------------------------------------------------------
+        const HASHTAGS = ["nature", "travel", "photography"];
+
+        // ------------------------------------------------------------
+        // 2. Nombre maximum de posts à récupérer
+        // ------------------------------------------------------------
+        const MAX_POSTS = 30;
+
+        // ------------------------------------------------------------
+        // 3. Intervalle de rafraîchissement des données (en secondes)
+        //    0 = pas de rafraîchissement automatique
+        // ------------------------------------------------------------
+        const REFRESH_INTERVAL = 60;
+
+        // ------------------------------------------------------------
+        // 4. Intervalle entre chaque diapositive (en secondes)
+        // ------------------------------------------------------------
+        const SLIDE_INTERVAL = 5;
+
+        // ------------------------------------------------------------
+        // 5. Mode "mock" : true = données fictives (pas d'API)
+        // ------------------------------------------------------------
+        const USE_MOCK = true;
+
+        // ------------------------------------------------------------
+        // 6. Image personnalisée (remplace une diapositive toutes les 5)
+        //    Placez votre image dans ./src/img/mon-image.jpg
+        // ------------------------------------------------------------
+        const CUSTOM_IMAGE_PATH = "./src/img/custom.jpg";
+        const CUSTOM_IMAGE_INTERVAL = 5; // toutes les 5 diapositives
+        const CUSTOM_IMAGE_LABEL = "✨ Contenu spécial"; // optionnel
+    </script>
+    <!-- ============================================================ -->
+
+    <style>
+        /* ----- RESET & PLEIN ÉCRAN ----- */
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        html,
+        body {
+            width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background: #0b0e14;
+            font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+            color: #f0f2f5;
+        }
+
+        /* ----- CONTENEUR PRINCIPAL ----- */
+        #slideshow-container {
+            position: relative;
+            width: 100vw;
+            height: 100vh;
+            background: #0b0e14;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            overflow: hidden;
+        }
+
+        /* ----- DIAPOSITIVE ACTIVE ----- */
+        .slide {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            opacity: 0;
+            transition: opacity 1.2s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background: #0b0e14;
+            pointer-events: none;
+        }
+
+        .slide.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .slide img,
+        .slide video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            display: block;
+        }
+
+        /* ----- OVERLAY TEXTE (en bas) ----- */
+        .slide .overlay {
+            position: absolute;
+            bottom: 0;
+            left: 0;
+            right: 0;
+            padding: 2rem 2rem 3rem;
+            background: linear-gradient(transparent, rgba(0, 0, 0, 0.7) 60%);
+            color: #fff;
+            text-shadow: 0 2px 12px rgba(0, 0, 0, 0.6);
+            pointer-events: none;
+        }
+
+        .slide .overlay .username {
+            font-weight: 600;
+            font-size: 1.4rem;
+            margin-bottom: 0.3rem;
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+        }
+
+        .slide .overlay .username .avatar {
+            display: inline-block;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            background: linear-gradient(135deg, #f09433, #bc1888);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            font-weight: 700;
+            color: #fff;
+            flex-shrink: 0;
+        }
+
+        .slide .overlay .caption {
+            font-size: 1.1rem;
+            line-height: 1.5;
+            opacity: 0.9;
+            max-width: 80%;
+            word-break: break-word;
+        }
+
+        .slide .overlay .caption .hashtag-highlight {
+            color: #f09433;
+        }
+
+        /* ----- DIAPOSITIVE PERSONNALISÉE ----- */
+        .slide.custom .overlay .custom-label {
+            font-size: 1.2rem;
+            font-weight: 500;
+            letter-spacing: 0.5px;
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(4px);
+            padding: 0.4rem 1.2rem;
+            border-radius: 40px;
+            display: inline-block;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+
+        /* ----- INDICATEUR DE PROGRESSION (optionnel) ----- */
+        #progress-bar {
+            position: fixed;
+            bottom: 0;
+            left: 0;
+            height: 4px;
+            background: linear-gradient(90deg, #f09433, #bc1888);
+            z-index: 100;
+            width: 0%;
+            transition: width 0.3s linear;
+        }
+
+        /* ----- INFOS EN HAUT (statut) ----- */
+        #status-bar {
+            position: fixed;
+            top: 1.2rem;
+            right: 1.5rem;
+            z-index: 200;
+            font-size: 0.8rem;
+            color: rgba(255, 255, 255, 0.5);
+            background: rgba(0, 0, 0, 0.4);
+            backdrop-filter: blur(6px);
+            padding: 0.4rem 1rem;
+            border-radius: 30px;
+            border: 1px solid rgba(255, 255, 255, 0.06);
+            display: flex;
+            align-items: center;
+            gap: 0.6rem;
+            pointer-events: none;
+            user-select: none;
+        }
+
+        #status-bar .dot {
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: #22c55e;
+            animation: pulse-dot 2s infinite;
+        }
+
+        #status-bar .dot.offline {
+            background: #ef4444;
+            animation: none;
+        }
+
+        @keyframes pulse-dot {
+            0%,
+            100% {
+                opacity: 1;
+                transform: scale(1);
+            }
+            50% {
+                opacity: 0.4;
+                transform: scale(0.8);
+            }
+        }
+
+        /* ----- CHARGEMENT ----- */
+        #loading {
+            position: fixed;
+            inset: 0;
+            z-index: 999;
+            background: #0b0e14;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            color: #8e95a3;
+            gap: 1rem;
+            transition: opacity 0.8s ease;
+        }
+
+        #loading.hidden {
+            opacity: 0;
+            pointer-events: none;
+        }
+
+        #loading .spinner {
+            width: 56px;
+            height: 56px;
+            border: 5px solid rgba(255, 255, 255, 0.06);
+            border-top: 5px solid #f09433;
+            border-radius: 50%;
+            animation: spin 0.9s linear infinite;
+        }
+
+        @keyframes spin {
+            to {
+                transform: rotate(360deg);
+            }
+        }
+
+        /* ----- RESPONSIVE ----- */
+        @media (max-width: 700px) {
+            .slide .overlay {
+                padding: 1.2rem 1.2rem 2rem;
+            }
+            .slide .overlay .username {
+                font-size: 1.1rem;
+            }
+            .slide .overlay .caption {
+                font-size: 0.95rem;
+                max-width: 100%;
+            }
+            .slide .overlay .username .avatar {
+                width: 28px;
+                height: 28px;
+                font-size: 0.7rem;
+            }
+            #status-bar {
+                top: 0.8rem;
+                right: 0.8rem;
+                font-size: 0.7rem;
+                padding: 0.3rem 0.8rem;
+            }
+        }
+
+        @media (max-width: 450px) {
+            .slide .overlay {
+                padding: 1rem 1rem 1.5rem;
+            }
+            .slide .overlay .username {
+                font-size: 0.95rem;
+            }
+            .slide .overlay .caption {
+                font-size: 0.8rem;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- ============================================================
+    ÉCRAN DE CHARGEMENT
+    ============================================================ -->
+    <div id="loading">
+        <div class="spinner"></div>
+        <p>Récupération des publications <span id="loadingHashtags">#…</span></p>
+    </div>
+
+    <!-- ============================================================
+    BARRE DE STATUT (en haut à droite)
+    ============================================================ -->
+    <div id="status-bar">
+        <span class="dot" id="statusDot"></span>
+        <span id="statusText">Chargement…</span>
+        <span id="slideCounter" style="margin-left:0.3rem; opacity:0.6;"></span>
+    </div>
+
+    <!-- ============================================================
+    CONTENEUR DU SLIDESHOW
+    ============================================================ -->
+    <div id="slideshow-container"></div>
+
+    <!-- ============================================================
+    BARRE DE PROGRESSION (en bas)
+    ============================================================ -->
+    <div id="progress-bar"></div>
+
+    <!-- ============================================================
+    JAVASCRIPT
+    ============================================================ -->
+    <script>
+        (function() {
+            'use strict';
+
+            // ---------- RÉFÉRENCES ----------
+            const container = document.getElementById('slideshow-container');
+            const loading = document.getElementById('loading');
+            const loadingHashtags = document.getElementById('loadingHashtags');
+            const statusDot = document.getElementById('statusDot');
+            const statusText = document.getElementById('statusText');
+            const slideCounter = document.getElementById('slideCounter');
+            const progressBar = document.getElementById('progress-bar');
+
+            // ---------- CONFIG (depuis le scope global) ----------
+            const hashtags = window.HASHTAGS || ['nature'];
+            const maxPosts = window.MAX_POSTS || 30;
+            const refreshInterval = window.REFRESH_INTERVAL || 60;
+            const slideInterval = window.SLIDE_INTERVAL || 5;
+            const useMock = window.USE_MOCK !== undefined ? window.USE_MOCK : true;
+            const customImagePath = window.CUSTOM_IMAGE_PATH || './src/img/custom.jpg';
+            const customImageInterval = window.CUSTOM_IMAGE_INTERVAL || 5;
+            const customImageLabel = window.CUSTOM_IMAGE_LABEL || '✨ Contenu spécial';
+
+            // ---------- ÉTAT ----------
+            let posts = [];
+            let slides = []; // tableau d'objets { type: 'post'|'custom', data: ... }
+            let currentSlideIndex = 0;
+            let slideTimer = null;
+            let refreshTimer = null;
+            let isTransitioning = false;
+
+            // ---------- AFFICHAGE DES HASHTAGS DANS LE CHARGEMENT ----------
+            if (loadingHashtags) {
+                loadingHashtags.textContent = hashtags.length ? '#' + hashtags.join(', #') : 'aucun hashtag';
+            }
+
+            // ---------- FORMATER LA DATE ----------
+            function formatTime(isoString) {
+                if (!isoString) return 'récent';
+                try {
+                    const d = new Date(isoString);
+                    const now = Date.now();
+                    const diff = Math.floor((now - d.getTime()) / 1000);
+                    if (diff < 60) return 'à l\'instant';
+                    if (diff < 3600) return `il y a ${Math.floor(diff / 60)} min`;
+                    if (diff < 86400) return `il y a ${Math.floor(diff / 3600)} h`;
+                    return d.toLocaleDateString('fr-FR', { day: 'numeric', month: 'short' });
+                } catch (_) { return 'récent'; }
+            }
+
+            // ---------- NETTOYER LA LÉGENDE (hashtags colorés) ----------
+            function cleanCaption(text) {
+                if (!text) return '';
+                return text.replace(/#(\w+)/g, (match, tag) =>
+                    `<span class="hashtag-highlight">#${tag}</span>`
+                );
+            }
+
+            // ---------- GÉNÉRER DES DONNÉES MOCK ----------
+            function generateMockPosts() {
+                const mockUsers = [
+                    { name: 'naturelover', avatar: '🌿' },
+                    { name: 'travelbug', avatar: '✈️' },
+                    { name: 'photography_daily', avatar: '📷' },
+                    { name: 'urban_explorer', avatar: '🏙️' },
+                    { name: 'cozy_vibes', avatar: '☕' },
+                    { name: 'wildlife_seeker', avatar: '🦁' },
+                    { name: 'sunset_chaser', avatar: '🌅' },
+                    { name: 'minimal_art', avatar: '🎨' },
+                ];
+
+                const captions = [
+                    'Magnifique coucher de soleil sur la plage #nature #sunset',
+                    'Aventure en montagne aujourd\'hui ! #travel #mountains',
+                    'Découverte de cette ville incroyable #photography #urban',
+                    'Moment de calme et de sérénité #peace #nature',
+                    'Exploration urbaine, toujours fascinant #city #streetphotography',
+                    'La beauté sauvage de la forêt #wildlife #nature',
+                    'Café du matin avec vue #coffee #morningvibes',
+                    'Art et minimalisme #art #minimalist',
+                    'Plage paradisiaque #beach #summer',
+                    'Coucher de soleil magique #sunset #love',
+                    'Aventure entre amis #friends #travel',
+                    'Nature sauvage #wild #naturelovers',
+                ];
+
+                const count = Math.min(maxPosts, 12 + Math.floor(Math.random() * 18));
+                const posts = [];
+
+                for (let i = 0; i < count; i++) {
+                    const user = mockUsers[i % mockUsers.length];
+                    const hasVideo = Math.random() > 0.85;
+                    const width = 800 + Math.floor(Math.random() * 600);
+                    const height = 800 + Math.floor(Math.random() * 400);
+                    const seed = Math.random().toString(36).substring(2, 10);
+                    const caption = captions[i % captions.length] +
+                        (i % 3 === 0 ? ' #' + hashtags[Math.floor(Math.random() * hashtags.length)] : '');
+
+                    posts.push({
+                        id: 'mock_' + i + '_' + seed,
+                        username: user.name,
+                        media_url: `https://picsum.photos/seed/${seed}/${width}/${height}`,
+                        image_url: `https://picsum.photos/seed/${seed}/${width}/${height}`,
+                        caption: caption,
+                        media_type: hasVideo ? 'VIDEO' : 'IMAGE',
+                        permalink: '#',
+                        like_count: Math.floor(Math.random() * 800) + 10,
+                        comment_count: Math.floor(Math.random() * 120) + 2,
+                        timestamp: new Date(Date.now() - Math.floor(Math.random() * 86400000 * 7)).toISOString(),
+                    });
+                }
+
+                return posts;
+            }
+
+            // ---------- APPEL À L'API (via le serveur Node) ----------
+            async function fetchFromServer() {
+                if (!hashtags || hashtags.length === 0) {
+                    throw new Error('Aucun hashtag configuré');
+                }
+                const hashtagParam = hashtags.join(',');
+                const url = `/api/instagram?hashtags=${encodeURIComponent(hashtagParam)}&limit=${maxPosts}`;
+                const resp = await fetch(url);
+                if (!resp.ok) {
+                    const errText = await resp.text();
+                    throw new Error(`Erreur serveur (${resp.status}): ${errText}`);
+                }
+                const data = await resp.json();
+                if (!data.success) {
+                    throw new Error(data.error || 'Erreur inconnue');
+                }
+                return data.data || [];
+            }
+
+            // ---------- RÉCUPÉRER LES POSTS ----------
+            async function fetchPosts() {
+                try {
+                    statusDot.className = 'dot';
+                    statusText.textContent = 'Chargement…';
+
+                    let data;
+                    if (useMock) {
+                        await new Promise(resolve => setTimeout(resolve, 600 + Math.random() * 400));
+                        data = generateMockPosts();
+                        statusText.textContent = 'Mode démo (données fictives)';
+                        statusDot.className = 'dot offline';
+                    } else {
+                        data = await fetchFromServer();
+                        statusText.textContent = `Connecté · ${hashtags.join(', ')}`;
+                        statusDot.className = 'dot';
+                    }
+
+                    posts = data || [];
+                    buildSlides();
+                    startSlideshow();
+
+                    // Cacher l'écran de chargement
+                    loading.classList.add('hidden');
+
+                } catch (err) {
+                    console.error('❌ Erreur:', err);
+                    statusDot.className = 'dot offline';
+                    statusText.textContent = '⚠️ ' + (err.message || 'Erreur de chargement');
+
+                    // En cas d'erreur, on peut utiliser des mock même si USE_MOCK=false
+                    if (!useMock) {
+                        // Fallback sur des mock pour ne pas rester bloqué
+                        posts = generateMockPosts();
+                        buildSlides();
+                        startSlideshow();
+                        loading.classList.add('hidden');
+                        statusText.textContent = '⚠️ Mode démo (fallback)';
+                    } else {
+                        // Déjà en mode mock, on réessaie
+                        posts = generateMockPosts();
+                        buildSlides();
+                        startSlideshow();
+                        loading.classList.add('hidden');
+                    }
+                }
+            }
+
+            // ---------- CONSTRUIRE LES DIAPOSITIVES (posts + custom) ----------
+            function buildSlides() {
+                const newSlides = [];
+                let postCounter = 0;
+
+                // On parcourt les posts
+                for (let i = 0; i < posts.length; i++) {
+                    const post = posts[i];
+                    newSlides.push({
+                        type: 'post',
+                        data: post
+                    });
+                    postCounter++;
+
+                    // Insérer une diapositive personnalisée après chaque N posts
+                    if (postCounter % customImageInterval === 0 && i < posts.length - 1) {
+                        newSlides.push({
+                            type: 'custom',
+                            data: {
+                                image: customImagePath,
+                                label: customImageLabel,
+                            }
+                        });
+                    }
+                }
+
+                // Si on a moins de customImageInterval posts, on peut ajouter une custom à la fin ?
+                // On en ajoute une à la fin si le nombre de posts > 0 et que le dernier n'était pas custom
+                if (posts.length > 0 && newSlides[newSlides.length - 1].type !== 'custom') {
+                    // On peut en ajouter une à la fin (optionnel)
+                    // newSlides.push({ type: 'custom', data: { image: customImagePath, label: customImageLabel } });
+                }
+
+                slides = newSlides;
+            }
+
+            // ---------- AFFICHER UNE DIAPOSITIVE ----------
+            function showSlide(index) {
+                if (!slides.length) return;
+                if (isTransitioning) return;
+
+                // Normaliser l'index
+                if (index >= slides.length) index = 0;
+                if (index < 0) index = slides.length - 1;
+
+                const slideData = slides[index];
+
+                // Créer l'élément slide s'il n'existe pas
+                let slideEl = container.querySelector(`.slide[data-index="${index}"]`);
+                if (!slideEl) {
+                    slideEl = document.createElement('div');
+                    slideEl.className = 'slide';
+                    slideEl.dataset.index = index;
+                    container.appendChild(slideEl);
+                }
+
+                // Remplir le contenu
+                slideEl.innerHTML = '';
+
+                if (slideData.type === 'post') {
+                    const post = slideData.data;
+                    const img = document.createElement('img');
+                    img.src = post.media_url || post.image_url || 'https://placehold.co/1200x1200/1a2430/6b7280?text=Instagram';
+                    img.alt = post.caption || 'Post Instagram';
+                    slideEl.appendChild(img);
+
+                    // Overlay
+                    const overlay = document.createElement('div');
+                    overlay.className = 'overlay';
+                    const usernameDiv = document.createElement('div');
+                    usernameDiv.className = 'username';
+                    const avatar = document.createElement('span');
+                    avatar.className = 'avatar';
+                    avatar.textContent = (post.username || 'U')[0].toUpperCase();
+                    usernameDiv.appendChild(avatar);
+                    usernameDiv.append('@' + (post.username || 'utilisateur'));
+                    overlay.appendChild(usernameDiv);
+
+                    if (post.caption) {
+                        const captionDiv = document.createElement('div');
+                        captionDiv.className = 'caption';
+                        captionDiv.innerHTML = cleanCaption(post.caption);
+                        overlay.appendChild(captionDiv);
+                    }
+
+                    slideEl.appendChild(overlay);
+                } else if (slideData.type === 'custom') {
+                    // Diapositive personnalisée
+                    const img = document.createElement('img');
+                    img.src = slideData.data.image;
+                    img.alt = customImageLabel;
+                    img.onerror = function() {
+                        this.src = 'https://placehold.co/1200x1200/2a1a3a/9b8ab0?text=Image+non+trouvée';
+                    };
+                    slideEl.appendChild(img);
+
+                    const overlay = document.createElement('div');
+                    overlay.className = 'overlay custom';
+                    const labelDiv = document.createElement('div');
+                    labelDiv.className = 'custom-label';
+                    labelDiv.textContent = slideData.data.label;
+                    overlay.appendChild(labelDiv);
+                    slideEl.appendChild(overlay);
+                }
+
+                // Retirer la classe active de tous
+                container.querySelectorAll('.slide').forEach(el => el.classList.remove('active'));
+                slideEl.classList.add('active');
+
+                // Mettre à jour le compteur
+                slideCounter.textContent = `${index + 1} / ${slides.length}`;
+
+                // Mettre à jour la barre de progression
+                if (slides.length > 0) {
+                    const progress = ((index + 1) / slides.length) * 100;
+                    progressBar.style.width = progress + '%';
+                }
+
+                currentSlideIndex = index;
+            }
+
+            // ---------- DIAPOSITIVE SUIVANTE ----------
+            function nextSlide() {
+                if (slides.length === 0) return;
+                const nextIndex = (currentSlideIndex + 1) % slides.length;
+                showSlide(nextIndex);
+            }
+
+            // ---------- DÉMARRER LE SLIDESHOW ----------
+            function startSlideshow() {
+                // Arrêter l'ancien timer
+                if (slideTimer) {
+                    clearInterval(slideTimer);
+                    slideTimer = null;
+                }
+
+                if (slides.length === 0) {
+                    // Afficher un message
+                    container.innerHTML = `
+                        <div style="color:#6b7280; text-align:center; padding:2rem;">
+                            <h3>Aucune publication disponible</h3>
+                            <p>Vérifiez les hashtags ou la connexion.</p>
+                        </div>
+                    `;
+                    return;
+                }
+
+                // Montrer la première
+                showSlide(0);
+
+                // Lancer l'intervalle
+                slideTimer = setInterval(nextSlide, slideInterval * 1000);
+            }
+
+            // ---------- RAFRAÎCHIR LES DONNÉES ET RECONSTRUIRE ----------
+            async function refreshData() {
+                await fetchPosts();
+                // La reconstruction et redémarrage sont gérés dans fetchPosts -> buildSlides -> startSlideshow
+            }
+
+            // ---------- INIT ----------
+            function init() {
+                // Démarrer le chargement des données
+                fetchPosts();
+
+                // Mettre en place le rafraîchissement automatique
+                if (refreshInterval > 0) {
+                    refreshTimer = setInterval(refreshData, refreshInterval * 1000);
+                }
+
+                // Navigation au clavier (flèches)
+                document.addEventListener('keydown', (e) => {
+                    if (e.key === 'ArrowRight' || e.key === 'ArrowDown') {
+                        e.preventDefault();
+                        if (slideTimer) {
+                            clearInterval(slideTimer);
+                            slideTimer = null;
+                            // Redémarrer après un délai ? On laisse l'utilisateur contrôler.
+                        }
+                        nextSlide();
+                    } else if (e.key === 'ArrowLeft' || e.key === 'ArrowUp') {
+                        e.preventDefault();
+                        if (slideTimer) {
+                            clearInterval(slideTimer);
+                            slideTimer = null;
+                        }
+                        const prevIndex = (currentSlideIndex - 1 + slides.length) % slides.length;
+                        showSlide(prevIndex);
+                    }
+                });
+
+                // Clic sur la diapositive pour avancer
+                container.addEventListener('click', () => {
+                    if (slideTimer) {
+                        clearInterval(slideTimer);
+                        slideTimer = null;
+                    }
+                    nextSlide();
+                });
+            }
+
+            // Lancer au chargement du DOM
+            if (document.readyState === 'loading') {
+                document.addEventListener('DOMContentLoaded', init);
+            } else {
+                init();
+            }
+
+        })();
+    </script>
+
+</body>
+</html>
